@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.meteoapp.controller.TemperatureController;
 import org.meteoapp.kafka.producer.KafkaProducer;
 import org.meteoapp.model.response.TemperatureResponse;
-import org.meteoapp.service.TemperatureService;
+import org.meteoapp.service.impl.TemperatureServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -26,7 +26,7 @@ class TemperatureControllerTest {
     private MockMvc mockMvc;
 
     @MockBean
-    private TemperatureService temperatureService;
+    private TemperatureServiceImpl temperatureService;
 
     @MockBean
     private KafkaProducer kafkaProducer;

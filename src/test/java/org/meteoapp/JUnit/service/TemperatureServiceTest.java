@@ -2,8 +2,8 @@ package org.meteoapp.JUnit.service;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.meteoapp.service.TemperatureService;
 import org.meteoapp.model.response.TemperatureResponse;
+import org.meteoapp.service.impl.TemperatureServiceImpl;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.meteoapp.model.TemperatureData;
@@ -31,7 +31,7 @@ class TemperatureServiceTest {
     @Mock
     private KafkaTemplate<String, String> kafkaTemplate;
 
-    private TemperatureService temperatureService;
+    private TemperatureServiceImpl temperatureService;
 
     private Clock clock;
 
@@ -44,7 +44,7 @@ class TemperatureServiceTest {
 
         clock = Clock.fixed(Instant.now(), ZoneOffset.UTC);
 
-        temperatureService = new TemperatureService(repository, clock, restTemplate, kafkaTemplate);
+        temperatureService = new TemperatureServiceImpl(repository, clock, restTemplate, kafkaTemplate);
     }
 
     @Test

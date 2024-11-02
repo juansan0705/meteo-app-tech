@@ -1,8 +1,8 @@
 package org.meteoapp.IT.controller;
 
 import org.junit.jupiter.api.Test;
-import org.meteoapp.service.TemperatureService;
 import org.meteoapp.model.response.TemperatureResponse;
+import org.meteoapp.service.impl.TemperatureServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -25,7 +25,7 @@ public class TemperatureControllerIntegrationTest {
     private MockMvc mockMvc;
 
     @MockBean
-    private TemperatureService temperatureService;
+    private TemperatureServiceImpl temperatureService;
 
     private static final String VALID_LATITUDE = "40.7128";
     private static final String VALID_LONGITUDE = "-74.0060";

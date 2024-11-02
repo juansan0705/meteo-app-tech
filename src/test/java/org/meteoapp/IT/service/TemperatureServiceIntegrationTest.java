@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.meteoapp.model.TemperatureData;
 import org.meteoapp.model.response.TemperatureResponse;
 import org.meteoapp.repository.TemperatureRepository;
-import org.meteoapp.service.TemperatureService;
+import org.meteoapp.service.impl.TemperatureServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -26,7 +26,7 @@ import static org.mockito.Mockito.*;
 public class TemperatureServiceIntegrationTest {
 
     @Autowired
-    private TemperatureService temperatureService;
+    private TemperatureServiceImpl temperatureService;
 
     @Autowired
     private TemperatureRepository repository;
