@@ -106,12 +106,17 @@ public class TemperatureServiceImpl implements TemperatureService {
         }
     }
 
-    private boolean isDataStale(TemperatureData data) {
+    public boolean isDataStale(TemperatureData data) {
         return ChronoUnit.MINUTES.between(data.getTimestamp(), LocalDateTime.now(clock)) > 1;
     }
 
-    private void sendToKafka(double latitude, double longitude, double temperature) {
-        String message = String.format("Lat: %.4f, Lon: %.4f, Temp: %.2f", latitude, longitude, temperature);
-        kafkaTemplate.send("my-Topic", message);
+    public void sendToKafka(double latitude, double longitude, double temperature) {
+        String message = String.format(java.util.Locale.US, "Lat: %.4f, Lon: %.4f, Temp: %.2f", latitude, longitude, temperature);
+        try {
+            kafkaTemplate.send("my-Topic", message);
+        } catch (Exception e) {
+            logger.severe("Error sending message to Kafka: " + e.getMessage());
+        }
     }
+
 }

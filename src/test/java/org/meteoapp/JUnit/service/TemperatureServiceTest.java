@@ -90,6 +90,109 @@ class TemperatureServiceTest {
 
         verify(repository, times(1)).save(savedData);
     }
+    @Test
+    void givenDataStaleWhenGetTemperatureThenFetchesNewData() {
+        TemperatureData staleData = new TemperatureData();
+        staleData.setLatitude(LATITUDE);
+        staleData.setLongitude(LONGITUDE);
+        staleData.setTemperature(20.0);
+        staleData.setTimestamp(LocalDateTime.now(clock).minusMinutes(2));
+
+        when(repository.findByLatitudeAndLongitude(LATITUDE, LONGITUDE)).thenReturn(Optional.of(staleData));
+
+        TemperatureResponse apiResponse = new TemperatureResponse();
+        apiResponse.setLatitude(LATITUDE);
+        apiResponse.setLongitude(LONGITUDE);
+        TemperatureResponse.CurrentWeather currentWeather = new TemperatureResponse.CurrentWeather();
+        currentWeather.setTemperature(30.0);
+        apiResponse.setCurrentWeather(currentWeather);
+
+        String expectedUrl = String.format("https://api.open-meteo.com/v1/forecast?latitude=%s&longitude=%s&current_weather=true", LATITUDE, LONGITUDE);
+        when(restTemplate.getForObject(eq(expectedUrl), eq(TemperatureResponse.class))).thenReturn(apiResponse);
+
+        Optional<TemperatureResponse> result = temperatureService.getTemperature(LATITUDE, LONGITUDE);
+
+        assertTrue(result.isPresent());
+        assertEquals(30.0, result.get().getCurrentWeather().getTemperature());
+        verify(repository, atLeast(2)).findByLatitudeAndLongitude(LATITUDE, LONGITUDE);
+        verify(repository, times(1)).save(any(TemperatureData.class));
+    }
+
+
+    @Test
+    void givenExistingDataWhenFetchAndSaveTemperatureDataThenUpdatesExistingData() {
+        TemperatureData existingData = new TemperatureData();
+        existingData.setId("1L");
+        existingData.setLatitude(LATITUDE);
+        existingData.setLongitude(LONGITUDE);
+        existingData.setTemperature(25.0);
+        existingData.setTimestamp(LocalDateTime.now(clock));
+
+        when(repository.findByLatitudeAndLongitude(LATITUDE, LONGITUDE)).thenReturn(Optional.of(existingData));
+
+        TemperatureResponse apiResponse = new TemperatureResponse();
+        apiResponse.setLatitude(LATITUDE);
+        apiResponse.setLongitude(LONGITUDE);
+        TemperatureResponse.CurrentWeather currentWeather = new TemperatureResponse.CurrentWeather();
+        currentWeather.setTemperature(30.0);
+        apiResponse.setCurrentWeather(currentWeather);
+
+        String expectedUrl = String.format("https://api.open-meteo.com/v1/forecast?latitude=%s&longitude=%s&current_weather=true", LATITUDE, LONGITUDE);
+        when(restTemplate.getForObject(eq(expectedUrl), eq(TemperatureResponse.class))).thenReturn(apiResponse);
+
+        Optional<TemperatureData> result = temperatureService.fetchAndSaveTemperatureData(LATITUDE, LONGITUDE);
+
+        assertTrue(result.isPresent());
+        assertEquals(30.0, result.get().getTemperature());
+        verify(repository, times(1)).save(any(TemperatureData.class));
+    }
+
+
+    @Test
+    void givenKafkaErrorWhenSendToKafkaThenLogsError() {
+        doThrow(new RuntimeException("Kafka error")).when(kafkaTemplate).send(anyString(), anyString());
+
+        TemperatureData data = new TemperatureData();
+        data.setLatitude(LATITUDE);
+        data.setLongitude(LONGITUDE);
+        data.setTemperature(25.0);
+
+        temperatureService.sendToKafka(LATITUDE, LONGITUDE, data.getTemperature());
+        verify(kafkaTemplate, times(1)).send(anyString(), anyString());
+    }
+
+
+    @Test
+    void givenDataInRepositoryNotStaleWhenGetTemperatureThenSendsToKafka() {
+        TemperatureData data = new TemperatureData();
+        data.setLatitude(LATITUDE);
+        data.setLongitude(LONGITUDE);
+        data.setTemperature(25.0);
+        data.setTimestamp(LocalDateTime.now(clock));
+
+        when(repository.findByLatitudeAndLongitude(LATITUDE, LONGITUDE)).thenReturn(Optional.of(data));
+
+        Optional<TemperatureResponse> result = temperatureService.getTemperature(LATITUDE, LONGITUDE);
+
+        assertTrue(result.isPresent());
+        verify(kafkaTemplate, times(1)).send(eq("my-Topic"), contains("Lat: 40.7128, Lon: -74.0060, Temp: 25.00"));
+    }
+
+    @Test
+    void givenStaleDataWhenIsDataStaleThenReturnsTrue() {
+        TemperatureData staleData = new TemperatureData();
+        staleData.setTimestamp(LocalDateTime.now(clock).minusMinutes(2));
+
+        assertTrue(temperatureService.isDataStale(staleData));
+    }
+
+    @Test
+    void givenFreshDataWhenIsDataStaleThenReturnsFalse() {
+        TemperatureData freshData = new TemperatureData();
+        freshData.setTimestamp(LocalDateTime.now(clock).minusSeconds(30));
+
+        assertFalse(temperatureService.isDataStale(freshData));
+    }
 
     @Test
     void givenApiCallFailsWhenFetchAndSaveTemperatureDataThenReturnsEmptyOptional() {
