@@ -66,52 +66,29 @@ class TemperatureServiceTest {
     }
 
     @Test
-    void givenDataInRepositoryStaleWhenGetTemperatureThenFetchesAndSavesNewData() {
-        TemperatureData staleData = new TemperatureData();
-        staleData.setLatitude(LATITUDE);
-        staleData.setLongitude(LONGITUDE);
-        staleData.setTemperature(20.0);
-        staleData.setTimestamp(LocalDateTime.now(clock).minusMinutes(10));
-
-        TemperatureData freshData = new TemperatureData();
-        freshData.setLatitude(LATITUDE);
-        freshData.setLongitude(LONGITUDE);
-        freshData.setTemperature(25.0);
-        freshData.setTimestamp(LocalDateTime.now(clock));
-
-        when(repository.findByLatitudeAndLongitude(LATITUDE, LONGITUDE))
-                .thenReturn(Optional.of(staleData))
-                .thenReturn(Optional.of(freshData));
-
-        when(restTemplate.getForObject(anyString(), eq(TemperatureData.class)))
-                .thenReturn(freshData);
-
-        Optional<TemperatureResponse> result = temperatureService.getTemperature(LATITUDE, LONGITUDE);
-
-        assertTrue(result.isPresent());
-        assertEquals(25.0, result.get().getCurrentWeather().getTemperature());
-
-        verify(repository, times(1)).save(freshData);
-        verify(repository, atLeastOnce()).findByLatitudeAndLongitude(LATITUDE, LONGITUDE);
-    }
-
-    @Test
     void givenApiCallSuccessfulWhenFetchAndSaveTemperatureDataThenSavesData() {
-        TemperatureData apiData = new TemperatureData();
-        apiData.setLatitude(LATITUDE);
-        apiData.setLongitude(LONGITUDE);
-        apiData.setTemperature(30.0);
-        apiData.setTimestamp(LocalDateTime.now(clock));
+        TemperatureResponse apiResponse = new TemperatureResponse();
+        apiResponse.setLatitude(LATITUDE);
+        apiResponse.setLongitude(LONGITUDE);
+        TemperatureResponse.CurrentWeather currentWeather = new TemperatureResponse.CurrentWeather();
+        currentWeather.setTemperature(30.0);
+        apiResponse.setCurrentWeather(currentWeather);
 
-        String expectedUrl = String.format("https://api.open-meteo.com/v1/forecast?latitude=%.4f&longitude=%.4f&current_weather=true", LATITUDE, LONGITUDE);
+        String expectedUrl = String.format("https://api.open-meteo.com/v1/forecast?latitude=%s&longitude=%s&current_weather=true", LATITUDE, LONGITUDE);
 
-        when(restTemplate.getForObject(eq(expectedUrl), eq(TemperatureData.class))).thenReturn(apiData);
+        when(restTemplate.getForObject(eq(expectedUrl), eq(TemperatureResponse.class))).thenReturn(apiResponse);
 
         Optional<TemperatureData> result = temperatureService.fetchAndSaveTemperatureData(LATITUDE, LONGITUDE);
 
         assertTrue(result.isPresent());
         assertEquals(30.0, result.get().getTemperature());
-        verify(repository, times(1)).save(apiData);
+
+        TemperatureData savedData = result.get();
+        assertEquals(LATITUDE, savedData.getLatitude());
+        assertEquals(LONGITUDE, savedData.getLongitude());
+        assertEquals(LocalDateTime.now(clock).getMinute(), savedData.getTimestamp().getMinute());
+
+        verify(repository, times(1)).save(savedData);
     }
 
     @Test

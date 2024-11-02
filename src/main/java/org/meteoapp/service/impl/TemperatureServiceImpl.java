@@ -46,28 +46,51 @@ public class TemperatureServiceImpl implements TemperatureService {
 
         Optional<TemperatureData> freshData = fetchAndSaveTemperatureData(latitude, longitude);
         freshData.ifPresent(data -> sendToKafka(latitude, longitude, data.getTemperature()));
+
         return freshData.map(this::mapToResponse);
     }
 
+
     @Override
     public Optional<TemperatureData> fetchAndSaveTemperatureData(double latitude, double longitude) {
-        String url = String.format("https://api.open-meteo.com/v1/forecast?latitude=%.4f&longitude=%.4f&current_weather=true", latitude, longitude);
+        String url = String.format("https://api.open-meteo.com/v1/forecast?latitude=%s&longitude=%s&current_weather=true", latitude, longitude);
         try {
-            TemperatureData response = restTemplate.getForObject(url, TemperatureData.class);
-            if (response != null) {
-                response.setLatitude(latitude);
-                response.setLongitude(longitude);
-                response.setTimestamp(LocalDateTime.now(clock));
+            TemperatureResponse response = restTemplate.getForObject(url, TemperatureResponse.class);
+            if (response != null && response.getCurrentWeather() != null) {
+                TemperatureData data = new TemperatureData();
+                data.setLatitude(latitude);
+                data.setLongitude(longitude);
+                data.setTemperature(response.getCurrentWeather().getTemperature());
+                data.setTimestamp(LocalDateTime.now(clock));
 
-                repository.findByLatitudeAndLongitude(latitude, longitude).ifPresent(existingData -> response.setId(existingData.getId()));
+                repository.findByLatitudeAndLongitude(latitude, longitude).ifPresent(existingData -> {
+                    data.setId(existingData.getId());
+                    repository.save(data);
+                });
 
-                repository.save(response);
+                if (!repository.findByLatitudeAndLongitude(latitude, longitude).isPresent()) {
+                    repository.save(data);
+                }
+
+                return Optional.of(data);
             }
-            return Optional.ofNullable(response);
         } catch (Exception e) {
             logger.severe("Error fetching data from API: " + e.getMessage());
-            return Optional.empty();
         }
+        return Optional.empty();
+    }
+
+
+    private TemperatureResponse mapToResponse(TemperatureData data) {
+        TemperatureResponse response = new TemperatureResponse();
+        response.setLatitude(data.getLatitude());
+        response.setLongitude(data.getLongitude());
+
+        TemperatureResponse.CurrentWeather currentWeather = new TemperatureResponse.CurrentWeather();
+        currentWeather.setTemperature(data.getTemperature());
+        response.setCurrentWeather(currentWeather);
+
+        return response;
     }
 
     @Override
@@ -81,14 +104,6 @@ public class TemperatureServiceImpl implements TemperatureService {
         if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
             throw new IllegalArgumentException("Latitude must be in range of -90 to 90° and longitude from -180 to 180°.");
         }
-    }
-
-    private TemperatureResponse mapToResponse(TemperatureData data) {
-        TemperatureResponse response = new TemperatureResponse();
-        TemperatureResponse.CurrentWeather currentWeather = new TemperatureResponse.CurrentWeather();
-        currentWeather.setTemperature(data.getTemperature());
-        response.setCurrentWeather(currentWeather);
-        return response;
     }
 
     private boolean isDataStale(TemperatureData data) {

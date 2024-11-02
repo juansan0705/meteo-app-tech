@@ -17,7 +17,7 @@
         <spring.core.version>6.1.11</spring.core.version>
         <lombok.version>1.18.30</lombok.version>
         <mockito.version>5.12.0</mockito.version>
-        <springdoc.version>1.6.14</springdoc.version>
+        <springdoc.version>1.8.0</springdoc.version>
     </properties>
 
     <dependencies>

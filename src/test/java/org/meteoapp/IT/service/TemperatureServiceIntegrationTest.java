@@ -37,6 +37,8 @@ public class TemperatureServiceIntegrationTest {
     private static final double VALID_LATITUDE = 40.7128;
     private static final double VALID_LONGITUDE = -74.0060;
     private static final double TEMPERATURE = 25.0;
+    @Autowired
+    private Clock clock;
 
     @BeforeEach
     void setUp() {
@@ -49,9 +51,17 @@ public class TemperatureServiceIntegrationTest {
         temperatureData.setLatitude(VALID_LATITUDE);
         temperatureData.setLongitude(VALID_LONGITUDE);
         temperatureData.setTemperature(TEMPERATURE);
-        temperatureData.setTimestamp(LocalDateTime.now(Clock.fixed(Instant.now(), ZoneOffset.UTC)));
+        temperatureData.setTimestamp(LocalDateTime.now(clock));
+        repository.save(temperatureData);
 
-        when(restTemplate.getForObject(anyString(), eq(TemperatureData.class))).thenReturn(temperatureData);
+        TemperatureResponse responseFromApi = new TemperatureResponse();
+        responseFromApi.setLatitude(VALID_LATITUDE);
+        responseFromApi.setLongitude(VALID_LONGITUDE);
+        TemperatureResponse.CurrentWeather currentWeather = new TemperatureResponse.CurrentWeather();
+        currentWeather.setTemperature(TEMPERATURE);
+        responseFromApi.setCurrentWeather(currentWeather);
+
+        when(restTemplate.getForObject(anyString(), eq(TemperatureResponse.class))).thenReturn(responseFromApi);
 
         Optional<TemperatureResponse> response = temperatureService.getTemperature(VALID_LATITUDE, VALID_LONGITUDE);
 
@@ -65,22 +75,20 @@ public class TemperatureServiceIntegrationTest {
         assertEquals(1, repository.findAll().size());
     }
 
+
     @Test
     void givenStaleDataInDatabaseWhenGetTemperatureThenFetchesAndUpdatesData() {
+        LocalDateTime staleTimestamp = LocalDateTime.now(clock).minusMinutes(2);
+
         TemperatureData staleData = new TemperatureData();
         staleData.setLatitude(VALID_LATITUDE);
         staleData.setLongitude(VALID_LONGITUDE);
         staleData.setTemperature(20.0);
-        staleData.setTimestamp(LocalDateTime.now(Clock.fixed(Instant.now().minusSeconds(120), ZoneOffset.UTC)));
+        staleData.setTimestamp(staleTimestamp);
         repository.save(staleData);
 
-        TemperatureData freshData = new TemperatureData();
-        freshData.setLatitude(VALID_LATITUDE);
-        freshData.setLongitude(VALID_LONGITUDE);
-        freshData.setTemperature(TEMPERATURE);
-        freshData.setTimestamp(LocalDateTime.now(Clock.fixed(Instant.now(), ZoneOffset.UTC)));
-
-        when(restTemplate.getForObject(anyString(), eq(TemperatureData.class))).thenReturn(freshData);
+        TemperatureResponse freshResponse = new TemperatureResponse(VALID_LATITUDE, VALID_LONGITUDE, TEMPERATURE);
+        when(restTemplate.getForObject(anyString(), eq(TemperatureResponse.class))).thenReturn(freshResponse);
 
         Optional<TemperatureResponse> response = temperatureService.getTemperature(VALID_LATITUDE, VALID_LONGITUDE);
 
@@ -93,6 +101,7 @@ public class TemperatureServiceIntegrationTest {
 
         assertEquals(1, repository.findAll().size());
     }
+
 
     @Test
     void givenValidCoordinatesWhenDeleteTemperatureThenRemovesData() {
