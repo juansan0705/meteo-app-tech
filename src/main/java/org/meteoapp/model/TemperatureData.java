@@ -1,23 +1,25 @@
 package org.meteoapp.model;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
 import org.springframework.data.annotation.Id;
-import java.time.*;
+import org.springframework.data.mongodb.core.mapping.Document;
 
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
+import java.time.LocalDateTime;
 
-@Getter
-@Setter
-@AllArgsConstructor
+@Data
+@Document(collection = "temperature_data")
 public class TemperatureData {
     @Id
     private String id;
+
+    @Min(-90) @Max(90)
     private double latitude;
+
+    @Min(-180) @Max(180)
     private double longitude;
+
     private double temperature;
     private LocalDateTime timestamp;
-
 }
-
-

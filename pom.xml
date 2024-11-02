@@ -12,11 +12,12 @@
         <java.version>21</java.version>
         <spring.boot.version>3.3.2</spring.boot.version>
         <kafka.version>3.2.3</kafka.version>
-        <logback.version>1.4.11</logback.version>
+        <logback.version>1.5.6</logback.version>
         <sf4j.version>2.0.13</sf4j.version>
         <spring.core.version>6.1.11</spring.core.version>
         <lombok.version>1.18.30</lombok.version>
         <mockito.version>5.12.0</mockito.version>
+        <springdoc.version>1.6.14</springdoc.version>
     </properties>
 
     <dependencies>
@@ -36,19 +37,24 @@
             <version>${kafka.version}</version>
         </dependency>
         <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-mongodb</artifactId>
+            <version>${spring.boot.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-ui</artifactId>
+            <version>${springdoc.version}</version>
+        </dependency>
+        <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-core</artifactId>
-            <version>1.5.6</version>
+            <version>${logback.version}</version>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-            <version>1.5.6</version>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-mongodb</artifactId>
-            <version>${spring.boot.version}</version>
+            <version>${logback.version}</version>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -74,6 +80,13 @@
             <version>${mockito.version}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka-test</artifactId>
+            <version>${kafka.version}</version>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
     <build>
