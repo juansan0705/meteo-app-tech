@@ -1,11 +1,14 @@
-package org.meteoapp.service;
+package org.meteoapp.JUnit.service;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.meteoapp.service.TemperatureService;
+import org.meteoapp.model.response.TemperatureResponse;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.meteoapp.model.TemperatureData;
 import org.meteoapp.repository.TemperatureRepository;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.Clock;
@@ -25,6 +28,9 @@ class TemperatureServiceTest {
     @Mock
     private RestTemplate restTemplate;
 
+    @Mock
+    private KafkaTemplate<String, String> kafkaTemplate;
+
     private TemperatureService temperatureService;
 
     private Clock clock;
@@ -38,7 +44,7 @@ class TemperatureServiceTest {
 
         clock = Clock.fixed(Instant.now(), ZoneOffset.UTC);
 
-        temperatureService = new TemperatureService(repository, clock);
+        temperatureService = new TemperatureService(repository, clock, restTemplate, kafkaTemplate);
     }
 
     @Test
@@ -46,14 +52,15 @@ class TemperatureServiceTest {
         TemperatureData data = new TemperatureData();
         data.setLatitude(LATITUDE);
         data.setLongitude(LONGITUDE);
+        data.setTemperature(25.0);
         data.setTimestamp(LocalDateTime.now(clock));
 
         when(repository.findByLatitudeAndLongitude(LATITUDE, LONGITUDE)).thenReturn(Optional.of(data));
 
-        Optional<TemperatureData> result = temperatureService.getTemperature(LATITUDE, LONGITUDE);
+        Optional<TemperatureResponse> result = temperatureService.getTemperature(LATITUDE, LONGITUDE);
 
         assertTrue(result.isPresent());
-        assertEquals(data, result.get());
+        assertEquals(25.0, result.get().getCurrentWeather().getTemperature());
         verify(repository, times(1)).findByLatitudeAndLongitude(LATITUDE, LONGITUDE);
         verifyNoMoreInteractions(repository, restTemplate);
     }
@@ -63,22 +70,29 @@ class TemperatureServiceTest {
         TemperatureData staleData = new TemperatureData();
         staleData.setLatitude(LATITUDE);
         staleData.setLongitude(LONGITUDE);
+        staleData.setTemperature(20.0);
         staleData.setTimestamp(LocalDateTime.now(clock).minusMinutes(10));
 
         TemperatureData freshData = new TemperatureData();
         freshData.setLatitude(LATITUDE);
         freshData.setLongitude(LONGITUDE);
+        freshData.setTemperature(25.0);
         freshData.setTimestamp(LocalDateTime.now(clock));
 
-        when(repository.findByLatitudeAndLongitude(LATITUDE, LONGITUDE)).thenReturn(Optional.of(staleData));
-        when(restTemplate.getForObject(anyString(), eq(TemperatureData.class))).thenReturn(freshData);
+        when(repository.findByLatitudeAndLongitude(LATITUDE, LONGITUDE))
+                .thenReturn(Optional.of(staleData))
+                .thenReturn(Optional.of(freshData));
 
-        Optional<TemperatureData> result = temperatureService.getTemperature(LATITUDE, LONGITUDE);
+        when(restTemplate.getForObject(anyString(), eq(TemperatureData.class)))
+                .thenReturn(freshData);
 
-        assertTrue(result.isPresent(), "The result was expected to be present, but it is not.");
-        assertEquals(freshData, result.get(), "The updated temperature data does not match.");
-        verify(repository).save(freshData);
-        verify(repository, times(1)).findByLatitudeAndLongitude(LATITUDE, LONGITUDE);
+        Optional<TemperatureResponse> result = temperatureService.getTemperature(LATITUDE, LONGITUDE);
+
+        assertTrue(result.isPresent());
+        assertEquals(25.0, result.get().getCurrentWeather().getTemperature());
+
+        verify(repository, times(1)).save(freshData);
+        verify(repository, atLeastOnce()).findByLatitudeAndLongitude(LATITUDE, LONGITUDE);
     }
 
     @Test
@@ -86,15 +100,28 @@ class TemperatureServiceTest {
         TemperatureData apiData = new TemperatureData();
         apiData.setLatitude(LATITUDE);
         apiData.setLongitude(LONGITUDE);
+        apiData.setTemperature(30.0);
         apiData.setTimestamp(LocalDateTime.now(clock));
 
-        when(restTemplate.getForObject(anyString(), eq(TemperatureData.class))).thenReturn(apiData);
+        String expectedUrl = String.format("https://api.open-meteo.com/v1/forecast?latitude=%.4f&longitude=%.4f&current_weather=true", LATITUDE, LONGITUDE);
+
+        when(restTemplate.getForObject(eq(expectedUrl), eq(TemperatureData.class))).thenReturn(apiData);
 
         Optional<TemperatureData> result = temperatureService.fetchAndSaveTemperatureData(LATITUDE, LONGITUDE);
 
-        assertTrue(result.isPresent(), "The result was expected to be present, but it is not.");
-        assertEquals(apiData, result.get(), "Los datos de temperatura guardados no coinciden con los esperados.");
+        assertTrue(result.isPresent());
+        assertEquals(30.0, result.get().getTemperature());
         verify(repository, times(1)).save(apiData);
+    }
+
+    @Test
+    void givenApiCallFailsWhenFetchAndSaveTemperatureDataThenReturnsEmptyOptional() {
+        when(restTemplate.getForObject(anyString(), eq(TemperatureData.class))).thenThrow(new RuntimeException("API error"));
+
+        Optional<TemperatureData> result = temperatureService.fetchAndSaveTemperatureData(LATITUDE, LONGITUDE);
+
+        assertFalse(result.isPresent());
+        verify(repository, never()).save(any(TemperatureData.class));
     }
 
     @Test
@@ -113,15 +140,5 @@ class TemperatureServiceTest {
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
                 () -> temperatureService.validateCoordinates(100.0, 190.0));
         assertEquals("Latitude must be in range of -90 to 90° and longitude from -180 to 180°.", exception.getMessage());
-    }
-
-    @Test
-    void givenApiCallFailsWhenFetchAndSaveTemperatureDataThenReturnsEmptyOptional() {
-        when(restTemplate.getForObject(anyString(), eq(TemperatureData.class))).thenThrow(new RuntimeException("API error"));
-
-        Optional<TemperatureData> result = temperatureService.fetchAndSaveTemperatureData(LATITUDE, LONGITUDE);
-
-        assertFalse(result.isPresent());
-        verify(repository, never()).save(any(TemperatureData.class));
     }
 }

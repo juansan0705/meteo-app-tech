@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 @Data
 @Document(collection = "temperature_data")
 public class TemperatureData {
+
     @Id
     private String id;
 
@@ -21,5 +22,10 @@ public class TemperatureData {
     private double longitude;
 
     private double temperature;
+
     private LocalDateTime timestamp;
+
+    public TemperatureData() {
+        this.timestamp = LocalDateTime.now();
+    }
 }
