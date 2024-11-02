@@ -21,12 +21,12 @@ This application fetches temperature data for a given latitude and longitude and
 
 ## Project Structure
 
-- **controller**: Contains the REST controllers for handling HTTP requests.
-- **service**: Interface and implementation for business logic.
-- **model**: Entity classes for temperature data and response structure.
-- **repository**: MongoDB repository for temperature data.
-- **kafka**: Kafka producer for sending messages on data retrieval.
-- **config**: Application configurations, including Kafka and RestTemplate beans.
+- **Controller**: Contains the REST controllers for handling HTTP requests.
+- **Service**: Interface and implementation for business logic.
+- **Model**: Entity classes for temperature data and response structure.
+- **Repository**: MongoDB repository for temperature data.
+- **Kafka**: Kafka producer for sending messages on data retrieval.
+- **Config**: Application configurations, including Kafka and RestTemplate beans.
 
 ## Running the Application
 
