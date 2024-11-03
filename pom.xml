@@ -13,7 +13,6 @@
         <spring.boot.version>3.3.2</spring.boot.version>
         <kafka.version>3.2.3</kafka.version>
         <logback.version>1.5.6</logback.version>
-        <sf4j.version>2.0.13</sf4j.version>
         <spring.core.version>6.1.11</spring.core.version>
         <lombok.version>1.18.30</lombok.version>
         <mockito.version>5.12.0</mockito.version>

@@ -90,6 +90,7 @@ class TemperatureServiceTest {
 
         verify(repository, times(1)).save(savedData);
     }
+
     @Test
     void givenDataStaleWhenGetTemperatureThenFetchesNewData() {
         TemperatureData staleData = new TemperatureData();
@@ -117,7 +118,6 @@ class TemperatureServiceTest {
         verify(repository, atLeast(2)).findByLatitudeAndLongitude(LATITUDE, LONGITUDE);
         verify(repository, times(1)).save(any(TemperatureData.class));
     }
-
 
     @Test
     void givenExistingDataWhenFetchAndSaveTemperatureDataThenUpdatesExistingData() {
@@ -147,7 +147,6 @@ class TemperatureServiceTest {
         verify(repository, times(1)).save(any(TemperatureData.class));
     }
 
-
     @Test
     void givenKafkaErrorWhenSendToKafkaThenLogsError() {
         doThrow(new RuntimeException("Kafka error")).when(kafkaTemplate).send(anyString(), anyString());
@@ -160,7 +159,6 @@ class TemperatureServiceTest {
         temperatureService.sendToKafka(LATITUDE, LONGITUDE, data.getTemperature());
         verify(kafkaTemplate, times(1)).send(anyString(), anyString());
     }
-
 
     @Test
     void givenDataInRepositoryNotStaleWhenGetTemperatureThenSendsToKafka() {
