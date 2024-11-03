@@ -16,17 +16,17 @@ This application fetches temperature data for a given latitude and longitude and
 
 - Java 21
 - Docker and Docker Compose
-- MongoDB (included in Docker Compose)
-- Kafka (included in Docker Compose)
+- MongoDB
+- Kafka
 
 ## Project Structure
 
-- **controller**: Contains the REST controllers for handling HTTP requests.
-- **service**: Interface and implementation for business logic.
-- **model**: Entity classes for temperature data and response structure.
-- **repository**: MongoDB repository for temperature data.
-- **kafka**: Kafka producer for sending messages on data retrieval.
-- **config**: Application configurations, including Kafka and RestTemplate beans.
+- **Controller**: Contains the REST controllers for handling HTTP requests.
+- **Service**: Interface and implementation for business logic.
+- **Model**: Entity classes for temperature data and response structure.
+- **Repository**: MongoDB repository for temperature data.
+- **Kafka**: Kafka producer for sending messages on data retrieval.
+- **Config**: Application configurations, including Kafka and RestTemplate beans.
 
 ## Running the Application
 
@@ -39,7 +39,29 @@ This application fetches temperature data for a given latitude and longitude and
    ```bash
    docker-compose up --build -d
 
-3. **Access the Application**
+3. **Enable Kafka Listener**
+    - To activate the Kafka listener in your local environment, follow these steps:
+
+   Run the following command to start Zookeeper:
+   ```bash
+   .\bin\windows\zookeeper-server-start.bat .\config\zookeeper.properties
+    ```
+    Run the following command to start Kafka:
+    ```bash
+    .\bin\windows\kafka-server-start.bat .\config\server.properties
+    ```
+    Run the following command to create a Kafka topic:
+    ```bash
+    .\bin\windows\kafka-topics.bat --create --topic temperature-update --bootstrap-server localhost:9092
+    ```
+
+4. **Create local database with MongoDB**
+- **MongoDB Compass**: Create a database in MongoDB with default specifications: 
+    ```bash
+    mongodb://localhost:27017/.
+    ```
+
+5. **Access the Application**
 - **API**: The application runs on http://localhost:8080.
 - **Swagger**: The Swagger documentation is available at http://localhost:8080/swagger-ui.html.
 - **Kafka**: The Kafka server runs on http://localhost:9092.

@@ -11,7 +11,15 @@ public interface TemperatureService {
 
     Optional<TemperatureData> fetchAndSaveTemperatureData(double latitude, double longitude);
 
+    TemperatureResponse mapToResponse(TemperatureData data);
+
     void deleteTemperature(double latitude, double longitude);
 
     void validateCoordinates(double latitude, double longitude);
+
+    boolean isDataStale(TemperatureData data);
+
+    void sendToKafka(double latitude, double longitude, double temperature);
+
+
 }

@@ -80,8 +80,8 @@ public class TemperatureServiceImpl implements TemperatureService {
         return Optional.empty();
     }
 
-
-    private TemperatureResponse mapToResponse(TemperatureData data) {
+    @Override
+    public TemperatureResponse mapToResponse(TemperatureData data) {
         TemperatureResponse response = new TemperatureResponse();
         response.setLatitude(data.getLatitude());
         response.setLongitude(data.getLongitude());
@@ -106,12 +106,19 @@ public class TemperatureServiceImpl implements TemperatureService {
         }
     }
 
-    private boolean isDataStale(TemperatureData data) {
+    @Override
+    public boolean isDataStale(TemperatureData data) {
         return ChronoUnit.MINUTES.between(data.getTimestamp(), LocalDateTime.now(clock)) > 1;
     }
 
-    private void sendToKafka(double latitude, double longitude, double temperature) {
-        String message = String.format("Lat: %.4f, Lon: %.4f, Temp: %.2f", latitude, longitude, temperature);
-        kafkaTemplate.send("my-Topic", message);
+    @Override
+    public void sendToKafka(double latitude, double longitude, double temperature) {
+        String message = String.format(java.util.Locale.US, "Lat: %.4f, Lon: %.4f, Temp: %.2f", latitude, longitude, temperature);
+        try {
+            kafkaTemplate.send("my-Topic", message);
+        } catch (Exception e) {
+            logger.severe("Error sending message to Kafka: " + e.getMessage());
+        }
     }
+
 }
